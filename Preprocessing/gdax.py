@@ -3,7 +3,7 @@ GDAX Data Collection and Processing
 For a selected crypto-fiat pair, Collect OHLC candlestick data at the specified interval level and return it
 """
 # Import packages
-import pandas
+import pandas as pd
 import time
 import requests
 from datetime import datetime, timedelta
@@ -29,11 +29,7 @@ class GDAX(Preprocessor):
     def get_training_data(self):
         """
         Breaks up gdax trade data requests into chunks of 200 candlesticks to download in 1 second intervals, to comply with GDAX API rules
-        :currency_pair: string with requested crypto-fiat pair
-        :start: start of time period as datetime object
-        :end: end of time period as datetime object
-        :interval: candlestick intervals in ninutes
-        Returns an array with rows of candlestick data in the following format: [timestamp, low, high, open, close, volume]
+        Returns an dataframe with rows of candlestick data in the following format: [timestamp, low, high, open, close, volume]
         """
         data = [] # Empty list to append data
         delta = timedelta(minutes=self.interval * 200) # 200 intervals per request
@@ -48,9 +44,9 @@ class GDAX(Preprocessor):
             slice_start = slice_end
             time.sleep(0.5)
 
-        data_frame = pandas.DataFrame(data=data, columns=['time', 'low', 'high', 'open', 'close', 'volume'])
-        data_frame.set_index('time', inplace=True)
-        return data_frame
+        dataframe = pd.DataFrame(data=data, columns=['time', 'low', 'high', 'open', 'close', 'volume'])
+        dataframe.set_index('time', inplace=True)
+        return dataframe
 
     def get_test_data(self):
         """
@@ -69,7 +65,7 @@ class GDAX(Preprocessor):
 
         # Change dates to iso8601 format as specified
         iso_start = date_to_iso8601(start)
-        iso_end = self.date_to_iso8601(end)
+        iso_end = date_to_iso8601(end)
 
         for retry_count in range(0, self.retries):
             response = requests.get(self.url, {
