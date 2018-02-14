@@ -2,7 +2,7 @@
 
 class Preprocessor:
 
-    def __init__(self, topic, interval, start_time, end_time):
+    def __init__(self, topic, interval=5, start_time, end_time):
         """
         Initialise shared parameters.
         :topic: this will be the API specific target. E.g. a reddit subreddit or GDAX currency pair
