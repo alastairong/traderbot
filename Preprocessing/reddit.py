@@ -9,19 +9,26 @@ score for each time period.
 import os
 from urllib.request import urlretrieve, urlopen
 import time
+from datetime import datetime, timedelta
+import pytz
 
 # Import data science packages
+import numpy as np
 import pandas as pd
 
 # Import reddit related packages
 import praw
 import pdb
 import re
-import timesearch
 
 # TODO Import Google NLP API
+from google.cloud import language
+from google.cloud.language import enums
+from google.cloud.language import types
+from google.oauth2 import service_account
 
 from base_class import Preprocessor
+from helpers import date_to_iso8601, date_to_interval
 
 # Define
 class Reddit_Scanner(Preprocessor):
@@ -33,91 +40,74 @@ class Reddit_Scanner(Preprocessor):
     the number of comments being made (magnitude/vocality)
     """
 
-    def __init__(self, client_ID, client_secret, topic, interval=5, start_time, end_time):
+    def __init__(self, interval, start_time, end_time):
         """
-        :topic: Subreddit to collect data for
         :interval: Interval in minutes
         :start_time: How far back to collect data, as a datetime object
         :end_time: Latest datapoint, as a datetime object
         """
-        self.reddit = praw.Reddit(user_agent='Comment Extraction (by /u/kibbl3)',
-                     client_id=client_ID, client_secret=client_secret)
-        self.subreddit = self.reddit.subreddit(topic)
         self.interval = interval
         self.start_time = start_time
         self.end_time = end_time
 
-        # TODO: Initialize Google NLP API credentials here
+    def authenticate(client_ID, client_secret, include_sentiment_analysis=False):
+        """
+        Authenticate with Reddit and Google Cloud
+        """
+        self.reddit = praw.Reddit(user_agent='Comment Extraction (by /u/kibbl3)',
+             client_id=client_ID, client_secret=client_secret)
 
-    def get_training_data(self):
+        # Initialize Google NLP API credentials
+        self.include_sentiment_analysis = include_sentiment_analysis
+        if self.include_sentiment_analysis:
+            creds = service_account.Credentials.from_service_account_file(
+            './Traderbot-5d2e0a1af0a9.json')
+            self.NLP_client = language.LanguageServiceClient(credentials=creds)
+
+    def get_training_data(self, topic):
         """
         Call API to collect target dataset over the defined time period. Returns fully formatted data as a
         dataframe and summarized into intervals.
+        :topic: Subreddit to collect data for
         Note that training data here has not yet been split into data vs. targets
         """
+        start_timestamp = self.start_time.replace(tzinfo=pytz.utc).timestamp()
+        end_timestamp = self.end_time.replace(tzinfo=pytz.utc).timestamp()
 
-        # Define the raw comment output DataFrame structure
-        raw_comments = pd.DataFrame([],
-            col=["Post_ID", "Post_Date", "Post_Score",
-            "Comment_ID", "Comment_Text", "Comment_Date",
-            "Comment_Score", "Replying_to_ID",
-            "sentiment_score", "sentiment_magnitude",
-            "ETH_score", "ETH_magnitude",
-            "BTC_score", "BTC_magnitude",
-            "LTC_score", "LTC_magnitude"])
+        raw_comments = self.get_raw_comments(topic)
+        scrubbed_comments = self.scrub_reddit_comments(raw_comments, start_timestamp, end_timestamp):
 
-        # Get a dataframe of all comments for TOP subreddits. Top subreddits have the most upvote and downvotes and therefore
-        # low-bias high traffic representation of sentiment...or maybe it needs to be new because I need ALL comments to properly calibrate / train
-        all_posts = self.subreddit.new(limit=5000)
-        for post in top_posts:
-             comment_tree = post.comments.replace_more()
-             for comment in comment_tree:
-                 new_line = [
-                    post.id, post.date, post.score,
-                    comment.id, comment.body, comment.date,
-                    comment.score, comment.parent_id,
-                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # 0.0 placeholders until NLP results returned
-                raw_comments = raw_comments.append(new_line)
+        # Calls GCloud NLP API for sentiment analysis
+        if self.include_sentiment_analysis:
+            for i, row in raw_comments.iterrows():
+                text = row['Comment_Text']
+                document = types.Document(
+                    content=text,
+                    type=enums.Document.Type.PLAIN_TEXT)
+                sentiment = self.NLP_client.analyze_sentiment(document=document)
+                row['Sentiment_Score'] = sentiment.document_sentiment.score
+                row['Sentiment_Magnitude'] = sentiment.document_sentiment.magnitude
 
-        # Scrub data to remove low value comments
-        raw_comments = raw_comments.where.comment_date >= self.start_time
-        raw_comments = raw_comments.where.comment_date <= self.end_time
-        raw_comments, discarded_comments = raw_comments.where.comment_text.len > 10, <= 10
-        print(discarded_comments[:50]) # Check what's being discarded_comments
-        print(raw_comments[:50]) # Check if there's still anything we can remove
+        # Convert dataframe from objects to float for numerical analysis
+        raw_comments[['Sentiment_Score','Sentiment_Magnitude', "ETH_Score", "ETH_Magnitude","BTC_Score", "BTC_Magnitude", "LTC_Score", "LTC_Magnitude"]] = raw_comments[['Sentiment_Score','Sentiment_Magnitude',"ETH_Score", "ETH_Magnitude", "BTC_Score", "BTC_Magnitude", "LTC_Score", "LTC_Magnitude"]].apply(pd.to_numeric)
 
-        # Feed list to Google NLP API to return scores
-        for comment in raw_comments
-            # Get results from sentiment analysis API
-            sentiment_analysis = NLP_API.sentiment_analysis(comment.body)
-            entity_sentiment_analysis = NLP_API.entity_sentiment_analysis(comment.body)
+        # Group comments into periods to aggregate sentiment
+        reddit_sentiment = raw_comments.groupby('period')
+        reddit_sentiment = reddit_sentiment.agg({
+            'Comment_ID': 'count', # Gonna cheat and use this existing column as the count
+            'Sentiment_Score': np.mean,
+            'Sentiment_Magnitude': np.mean, # Average magnitude because don't want to skew to many low magnitude comments
+            'BTC_Score': np.mean,
+            'BTC_Magnitude': np.mean,
+            'ETH_Score': np.mean,
+            'ETH_Magnitude': np.mean,
+            'LTC_Score': np.mean,
+            'LTC_Magnitude': np.mean,
+        })
 
-            # Replace synonyms for ETH, BTC, and LTC. If multiple terms comes up (e.g. ETH and ether)
-            # we will automatically take the FIRST term as that will be the highest salience value
-            entity_sentiment_analysis.tolowercase().replace("ethereum", "ETH")
-            entity_sentiment_analysis.tolowercase().replace("ether", "ETH")
-            entity_sentiment_analysis.tolowercase().replace("ethers", "ETH")
-            entity_sentiment_analysis.tolowercase().replace("etherium", "ETH")
-            entity_sentiment_analysis.tolowercase().replace("bitcoin", "BTC")
-            entity_sentiment_analysis.tolowercase().replace("bitc", "BTC")
-            entity_sentiment_analysis.tolowercase().replace("bitcoins", "BTC")
-            entity_sentiment_analysis.tolowercase().replace("litecoin", "LTC")
-            entity_sentiment_analysis.tolowercase().replace("litcoin", "LTC")
+        reddit_sentiment = reddit_sentiment.rename(columns={'Comment_ID': 'Volume'})
 
-            # Update raw_comments dataframe with sentiment analysis score
-            comment["sentiment_score"] = sentiment_analysis.sentiment.score
-            comment["sentiment_magnitude"] = sentiment_analysis.sentiment.magnitude
-            try:
-                comment["ETH_score"] = entity_sentiment_analysis.ETH.sentiment.score
-                comment["ETH_magnitude"] = entity_sentiment_analysis.ETH.sentiment.magnitude
-            try:
-                comment["BTC_score"] = entity_sentiment_analysis.BTC.sentiment.score
-                comment["BTC_magnitude"] = entity_sentiment_analysis.BTC.sentiment.magnitude
-
-        # Batch comments and scores into interval results (i.e. an interval "score")
-
-
-        return training_data
+        return reddit_sentiment
 
     def get_test_data(self):
         """
@@ -127,3 +117,86 @@ class Reddit_Scanner(Preprocessor):
         """
         # Get all comments for rising or controversial posts
         raise NotImplementedError("{} must override step()".format(self.__class__.__name__))
+
+    def get_raw_comments(self, subreddit):
+        """
+        Creates and populates a dataframe of raw_comments for a given subreddit
+        """
+
+        subreddit = self.reddit.subreddit(subreddit)
+
+        # Define the raw comment output DataFrame structure
+        columns = ["Post_ID", "Post_Date", "Post_Score",
+            "Comment_ID", "Comment_Text", "Comment_Date",
+            "Comment_Score", "Replying_to_ID",
+            "Sentiment_Score", "Sentiment_Magnitude",
+            "ETH_Score", "ETH_Magnitude",
+            "BTC_Score", "BTC_Magnitude",
+            "LTC_Score", "LTC_Magnitude"]
+        raw_comments = pd.DataFrame([], columns=columns, dtype=float)
+
+        all_posts = subreddit.hot(limit=10)
+
+        for post in all_posts:
+            post.comments.replace_more(limit=None)
+            for comment in post.comments.list():
+                #print(datetime.fromtimestamp(comment.created_utc))
+                new_line = [[
+                    post.id, post.created_utc, post.score,
+                    comment.id, comment.body, comment.created_utc,
+                    comment.score, comment.parent_id,
+                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]] # 0.0 placeholders until NLP results returned
+                raw_comments = raw_comments.append(pd.DataFrame(new_line, columns=columns),ignore_index=True)
+
+        return raw_comments
+
+    def scrub_reddit_comments(self, raw_comments, start_timestamp, end_timestamp):
+    """
+    Scrubs a reddit dataframe defined by get_raw_comments to only the time period, and also cleans up naming, time periods, etc
+    """
+
+        # Scrub data to remove low value comments
+        #print("raw shape is ", raw_comments.shape)
+        raw_comments = raw_comments[raw_comments['Comment_Date'] > start_timestamp]
+        #print("shape after removing comments before start date is ", raw_comments.shape)
+        raw_comments = raw_comments[raw_comments['Comment_Date'] < end_timestamp]
+        #print("shape after removing comments after end date is ", raw_comments.shape)
+        discarded_comments = raw_comments[raw_comments['Comment_Text'].map(len) < 100]
+        raw_comments = raw_comments[raw_comments['Comment_Text'].map(len) >= 100]
+        #print("final shape is ", raw_comments.shape)
+        #print(discarded_comments[:50]['Comment_Text']) # Check what's being discarded_comments
+
+        # Add periods for later aggregation
+        raw_comments['datetime'] = pd.to_datetime(raw_comments['Comment_Date'], unit='s') # Reformat unix timestamp as datetime
+        raw_comments['period'] = raw_comments['datetime'].map(lambda x: date_to_interval(x, self.interval))
+
+        # Replace synonyms for ETH, BTC, and LTC. If multiple terms comes up (e.g. ETH and ether)
+        raw_comments = raw_comments.apply(lambda x: x.astype(str).str.lower())
+        raw_comments = raw_comments.replace("ethereum", "ETH")
+        raw_comments = raw_comments.replace("ethereum's", "ETH")
+        raw_comments = raw_comments.replace("eth's", "ETH")
+        raw_comments = raw_comments.replace("ether's", "ETH")
+        raw_comments = raw_comments.replace("ether", "ETH")
+        raw_comments = raw_comments.replace("ethers", "ETH")
+        raw_comments = raw_comments.replace("etherium", "ETH")
+        raw_comments = raw_comments.replace("eth/usd", "ETH")
+        raw_comments = raw_comments.replace("eth/eur", "ETH")
+        raw_comments = raw_comments.replace("eth/cny", "ETH")
+        raw_comments = raw_comments.replace("bitcoin", "BTC")
+        raw_comments = raw_comments.replace("bitcoin's", "BTC")
+        raw_comments = raw_comments.replace("btc's", "BTC")
+        raw_comments = raw_comments.replace("bitc", "BTC")
+        raw_comments = raw_comments.replace("bitcoins", "BTC")
+        raw_comments = raw_comments.replace("btc/usd", "BTC")
+        raw_comments = raw_comments.replace("btc/eur", "BTC")
+        raw_comments = raw_comments.replace("btc/cny", "BTC")
+        raw_comments = raw_comments.replace("litecoin", "LTC")
+        raw_comments = raw_comments.replace("litcoin", "LTC")
+        raw_comments = raw_comments.replace("litecoin's", "LTC")
+        raw_comments = raw_comments.replace("litcoin's", "LTC")
+        raw_comments = raw_comments.replace("ltc's", "LTC")
+        raw_comments = raw_comments.replace("ltc/usd", "LTC")
+        raw_comments = raw_comments.replace("ltc/eur", "LTC")
+        raw_comments = raw_comments.replace("ltc/cny", "LTC")
+
+        return raw_comments

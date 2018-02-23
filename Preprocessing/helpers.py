@@ -7,6 +7,12 @@ def date_to_iso8601(date):
       minute=date.minute,
       second=date.second)
 
+def date_to_datestring(date):
+  return '{year}-{month:02d}-{day:02d}'.format(
+    year=date.year,
+    month=date.month,
+    day=date.day)
+
 def date_to_interval(dt, interval): # Round a datetime DOWN to the nearest interval
     interval = datetime(dt.year, dt.month, dt.day, dt.hour, dt.minute // interval * interval)
     return interval

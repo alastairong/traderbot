@@ -3,18 +3,19 @@ Classifier Neural Network
 Defines the model structure and key functions
 """
 
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, LSTM, MaxPooling2D, Conv2D
 
 class Neural_Net:
     """
-    Convolutional recurrent neural network setup. Rationale:
-    Convolutional network scans each time interval to recognise patterns across the dataset
+    RNN using LSTM. With only ~60 datapoints per time period, fully connected layers works well
     LSTM cells recall sequence of convolutional patterns
     """
 
-    def __init__(self, learning_rate=0.001, batch_size=64):
+    def __init__(self, architecture = RNN, learning_rate=0.001, batch_size=64):
         # Sets up the network in Keras, including optimisers
         # Starting point is a 4 layer CNN + 2 layers of LSTM
-        pass
+        self.model = architecture.build_model()
 
 
     def train(self):
@@ -27,7 +28,57 @@ class Neural_Net:
         pass
 
 
-class Model:
+class LSTM:
     """
     Actual model structure. Keep is separate to keep code clean?
     """
+    def __init__(self, input_size):
+        self.input_size = input_size
+        self.build_model()
+
+    def build_model(self): # Research more if dense layers needed first. if they are will need to reshape the data between them and the LSTMs
+        model = Keras.Sequential()
+        model.add(Dense(units=64, activation='relu', input_dim=input_size))
+        model.add(Dropout(0.2))
+        model.add(Dense(units=64, activation='relu')
+        model.add(Dropout(0.2))
+        #model.add(Dense(units=64, activation='relu')
+        #model.add(Dropout(0.2))
+        model.add(LSTM(
+            output_dim=64,
+            return_sequences=True,
+            stateful=False))
+        model.add(Dropout(0.2))
+        model.add(LSTM(
+            output_dim=64,
+            return_sequences=True,
+            stateful=False))
+        model.add(Dropout(0.2))
+        model.add(Dense(units=1, activation='linear'))
+
+        # Define optimiser and compile
+        optimizer = optimizers.Adam()
+        self.model.compile(optimizer=optimizer, loss=????)
+        return model
+
+class Convnet:
+    """
+    Actual model structure. Keep is separate to keep code clean?
+    """
+    def __init__(self, input_size):
+        self.input_size = input_size
+        self.build_model()
+
+    def build_model(self):
+        pass
+
+class standard_DNN:
+    """
+    Actual model structure. Keep is separate to keep code clean?
+    """
+    def __init__(self, input_size):
+        self.input_size = input_size
+        self.build_model()
+
+    def build_model(self):
+        pass
