@@ -42,6 +42,9 @@ class processor:
         # Convert absolute prices to % change
 
 
+        # Normalize values to 0 to 1
+
+
         # Aggregate data into 2D tensor
 
 
