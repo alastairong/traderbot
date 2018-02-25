@@ -33,7 +33,9 @@ class Blockchain_Stats(Preprocessor):
         :csv_path: filepath to a CSV with format of []
         Returns a dataframe of format []
         """
-
+        data = pd.read_csv(csv_path)
+        data = data[data['Timestamp'] < self.end_time]
+        data = data[data['Timestamp'] > self.start_time]
 
         pass
 
