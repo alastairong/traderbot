@@ -9,10 +9,9 @@ from keras.layers import Dense, Dropout, LSTM, MaxPooling2D, Conv2D
 class Neural_Net:
     """
     RNN using LSTM. With only ~60 datapoints per time period, fully connected layers works well
-    LSTM cells recall sequence of convolutional patterns
     """
 
-    def __init__(self, architecture = RNN, learning_rate=0.001, batch_size=64):
+    def __init__(self, architecture = LSTM, learning_rate=0.001, batch_size=64):
         # Sets up the network in Keras, including optimisers
         # Starting point is a 4 layer CNN + 2 layers of LSTM
         self.model = architecture.build_model()
@@ -36,15 +35,10 @@ class LSTM:
         self.input_size = input_size
         self.build_model()
 
-    def build_model(self): # Research more if dense layers needed first. if they are will need to reshape the data between them and the LSTMs
+    def build_model(self):
         model = Keras.Sequential()
-        model.add(Dense(units=64, activation='relu', input_dim=input_size))
-        model.add(Dropout(0.2))
-        model.add(Dense(units=64, activation='relu')
-        model.add(Dropout(0.2))
-        #model.add(Dense(units=64, activation='relu')
-        #model.add(Dropout(0.2))
         model.add(LSTM(
+            input_dim=input_size,
             output_dim=64,
             return_sequences=True,
             stateful=False))

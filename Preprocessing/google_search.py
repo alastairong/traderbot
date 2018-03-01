@@ -2,8 +2,8 @@ from pytrends.request import TrendReq
 import pandas as pd
 from datetime import datetime, timedelta
 
-from helpers import date_to_datestring
-from base_class import Preprocessor
+from traderbot.Preprocessing.helpers import date_to_datestring
+from traderbot.Preprocessing.base_class import Preprocessor
 
 class Searchtrends(Preprocessor):
 
@@ -36,7 +36,7 @@ class Searchtrends(Preprocessor):
         slice_start = self.start_time
         while slice_start != self.end_time:
             slice_end = min(slice_start + delta, self.end_time)
-            print("downloading data from {} to {}".format(slice_start, slice_end))
+            print("downloading {} data from {} to {}".format(topic, slice_start, slice_end))
             df = self.trend_downloader(
                     topic=[topic],
                     start=slice_start,
@@ -58,37 +58,44 @@ class Searchtrends(Preprocessor):
 
         # Global data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='', gprop='')
-        WW_data = self.pytrends.interest_over_time().rename(columns={'bitcoin': 'Worldwide'})
+        WW_data = self.pytrends.interest_over_time()
+        WW_data.columns= ['datetime', 'Worldwide']
         data = WW_data['Worldwide'].to_frame()
 
         # US Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='US', gprop='')
-        US_data = self.pytrends.interest_over_time().rename(columns={'bitcoin': 'US'})
+        US_data = self.pytrends.interest_over_time()
+        US_data.columns= ['datetime', 'US']
         data = data.join(US_data['US'])
 
         # UK Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='GB', gprop='')
-        GB_data = self.pytrends.interest_over_time().rename(columns={'bitcoin': 'GB'})
+        GB_data = self.pytrends.interest_over_time()
+        GB_data.columns= ['datetime', 'GB']
         data = data.join(GB_data['GB'])
 
         # UK Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='FR', gprop='')
-        FR_data = self.pytrends.interest_over_time().rename(columns={'bitcoin': 'FR'})
+        FR_data = self.pytrends.interest_over_time()
+        FR_data.columns= ['datetime', 'FR']
         data = data.join(FR_data['FR'])
 
         # Germany Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='DE', gprop='')
-        DE_data = self.pytrends.interest_over_time().rename(columns={'bitcoin': 'DE'})
+        DE_data = self.pytrends.interest_over_time()
+        DE_data.columns= ['datetime', 'DE']
         data = data.join(DE_data['DE'])
 
         # Russia Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='RU', gprop='')
-        RU_data = self.pytrends.interest_over_time().rename(columns={'bitcoin': 'RU'})
+        RU_data = self.pytrends.interest_over_time()
+        RU_data.columns= ['datetime', 'RU']
         data = data.join(RU_data['RU'])
 
         # Korea Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='KR', gprop='')
-        KR_data = self.pytrends.interest_over_time().rename(columns={'bitcoin': 'KR'})
+        KR_data = self.pytrends.interest_over_time()
+        KR_data.columns= ['datetime', 'KR']
         data = data.join(KR_data['KR'])
 
         return data

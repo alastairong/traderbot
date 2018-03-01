@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 
-from helpers import date_to_datestring, date_to_iso8601, date_to_interval
-from base_class import Preprocessor
+from traderbot.Preprocessing.helpers import date_to_datestring, date_to_iso8601, date_to_interval
+from traderbot.Preprocessing.base_class import Preprocessor
 
 class Blockchain_Stats(Preprocessor):
 
@@ -34,10 +34,13 @@ class Blockchain_Stats(Preprocessor):
         Returns a dataframe of format []
         """
         data = pd.read_csv(csv_path)
+        data[['Hashrate', 'Addresses', 'Supply', 'Trx_Fee', 'Daily_Trx']] = data[['Hashrate', 'Addresses', 'Supply', 'Trx_Fee', 'Daily_Trx']].apply(pd.to_numeric)
+        data[['Timestamp']] = data[['Timestamp']].apply(pd.to_datetime)
         data = data[data['Timestamp'] < self.end_time]
         data = data[data['Timestamp'] > self.start_time]
 
-        pass
+        return data
+
 
     def get_test_data(self, topic):
         """

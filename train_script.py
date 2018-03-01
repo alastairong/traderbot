@@ -15,7 +15,7 @@ if redownload or not os.path.isfile(pickle_filepath):
     valid_data = processor.historical_download(config, start_time, end_time)
     test_data = processor.historical_download(config, start_time, end_time)
 
-    # Split train, valid, and test data and targets
+    # Split train, valid, and test data and targets and convert to numpy arrays
     train_data, train_targets = processor.generate_x_y(training_data)
     valid_data, valid_targets = processor.generate_x_y(valid_data)
     test_data, test_targets = processor.generate_x_y(test_data)

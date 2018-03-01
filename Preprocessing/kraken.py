@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 import krakenex
 import pytz
 from pykrakenapi import KrakenAPI
-from base_class import Preprocessor
-from helpers import date_to_iso8601, date_to_interval
+from traderbot.Preprocessing.base_class import Preprocessor
+from traderbot.Preprocessing.helpers import date_to_iso8601, date_to_interval
 
 class Kraken(Preprocessor):
     def __init__(self, interval, start_time, end_time):
@@ -47,7 +47,7 @@ class Kraken(Preprocessor):
             trades = trades.append(new_data)
             time.sleep(1)
             print("time period from {} to {}".format(slice_start, last))
-        ohlc = self.trades_to_ohlc(trades)
+        dataframe = self.to_ohlc(trades)
         return dataframe
 
 
@@ -73,7 +73,7 @@ class Kraken(Preprocessor):
         return trades, last/1000000000
 
 
-    def trades_to_ohlc(trades):
+    def to_ohlc(self, trades):
         """
         Groups and processes individual trade data to return OHLC (candle) data
         :trades: trades pandas dataframe as returned by request_trade_slice function

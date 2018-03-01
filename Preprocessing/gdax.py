@@ -7,8 +7,8 @@ import pandas as pd
 import time
 import requests
 from datetime import datetime, timedelta
-from base_class import Preprocessor
-from helpers import date_to_iso8601
+from traderbot.Preprocessing.base_class import Preprocessor
+from traderbot.Preprocessing.helpers import date_to_iso8601
 
 class GDAX(Preprocessor):
     def __init__(self, interval, start_time, end_time):
@@ -22,22 +22,25 @@ class GDAX(Preprocessor):
         self.start_time = start_time
         self.end_time = end_time
         self.retries = 3 # For API rate-limiting
-        self.url = 'https://api.gdax.com/products/{currency_pair}/candles'.format(currency_pair=self.currency_pair) # URL for candle
 
     def get_training_data(self, topic):
         """
         Breaks up gdax trade data requests into chunks of 200 candlesticks to download in 1 second intervals, to comply with GDAX API rules
         :topic: this will be the API specific target. E.g. a reddit subreddit or GDAX currency pair
-        Returns an dataframe with rows of candlestick data in the following format: [timestamp, low, high, open, close, volume]
+        Returns an dataframe with rows of candlestick data in the following format: [time, low, high, open, close, volume]
         """
+
         data = [] # Empty list to append data
         currency_pair = topic
+        url = 'https://api.gdax.com/products/{currency_pair}/candles'.format(currency_pair=currency_pair) # URL for candle
+
         delta = timedelta(minutes=self.interval * 200) # 200 intervals per request
         slice_start = self.start_time
         while slice_start != self.end_time:
             slice_end = min(slice_start + delta, self.end_time)
-            print("downloading {} data from {} to {}".format(self.currency_pair, slice_start, slice_end))
+            print("downloading {} data from {} to {}".format(currency_pair, slice_start, slice_end))
             data += self.request_trade_slice(
+                    url=url,
                     start=slice_start,
                     end=slice_end,
             )
@@ -58,7 +61,7 @@ class GDAX(Preprocessor):
         raise NotImplementedError("{} must override step()".format(self.__class__.__name__))
 
 
-    def request_trade_slice(self, start, end):
+    def request_trade_slice(self, url, start, end):
         """
         Single HTTP request function with error catching and management for server error responses
         Response is in the format: [[time, low, high, open, close, volume], ...]
@@ -69,7 +72,7 @@ class GDAX(Preprocessor):
         iso_end = date_to_iso8601(end)
 
         for retry_count in range(0, self.retries):
-            response = requests.get(self.url, {
+            response = requests.get(url, {
               'start': iso_start,
               'end': iso_end,
               'granularity': self.interval * 60 # Converting to seconds for API

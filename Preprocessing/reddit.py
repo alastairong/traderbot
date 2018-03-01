@@ -11,6 +11,7 @@ from urllib.request import urlretrieve, urlopen
 import time
 from datetime import datetime, timedelta
 import pytz
+import tqdm
 
 # Import data science packages
 import numpy as np
@@ -21,14 +22,14 @@ import praw
 import pdb
 import re
 
-# TODO Import Google NLP API
+# Import Google NLP API
 from google.cloud import language
 from google.cloud.language import enums
 from google.cloud.language import types
 from google.oauth2 import service_account
 
-from base_class import Preprocessor
-from helpers import date_to_iso8601, date_to_interval
+from traderbot.Preprocessing.base_class import Preprocessor
+from traderbot.Preprocessing.helpers import date_to_iso8601, date_to_interval
 
 # Define
 class Reddit_Scanner(Preprocessor):
@@ -50,7 +51,7 @@ class Reddit_Scanner(Preprocessor):
         self.start_time = start_time
         self.end_time = end_time
 
-    def authenticate(client_ID, client_secret, include_sentiment_analysis=False):
+    def authenticate(self, client_ID, client_secret, include_sentiment_analysis=False):
         """
         Authenticate with Reddit and Google Cloud
         """
@@ -75,7 +76,7 @@ class Reddit_Scanner(Preprocessor):
         end_timestamp = self.end_time.replace(tzinfo=pytz.utc).timestamp()
 
         raw_comments = self.get_raw_comments(topic)
-        scrubbed_comments = self.scrub_reddit_comments(raw_comments, start_timestamp, end_timestamp):
+        raw_comments = self.scrub_reddit_comments(raw_comments, start_timestamp, end_timestamp)
 
         # Calls GCloud NLP API for sentiment analysis
         if self.include_sentiment_analysis:
@@ -90,7 +91,7 @@ class Reddit_Scanner(Preprocessor):
 
         # Convert dataframe from objects to float for numerical analysis
         raw_comments[['Sentiment_Score','Sentiment_Magnitude', "ETH_Score", "ETH_Magnitude","BTC_Score", "BTC_Magnitude", "LTC_Score", "LTC_Magnitude"]] = raw_comments[['Sentiment_Score','Sentiment_Magnitude',"ETH_Score", "ETH_Magnitude", "BTC_Score", "BTC_Magnitude", "LTC_Score", "LTC_Magnitude"]].apply(pd.to_numeric)
-
+        print("just before groupby: /n", raw_comments.head())
         # Group comments into periods to aggregate sentiment
         reddit_sentiment = raw_comments.groupby('period')
         reddit_sentiment = reddit_sentiment.agg({
@@ -135,9 +136,10 @@ class Reddit_Scanner(Preprocessor):
             "LTC_Score", "LTC_Magnitude"]
         raw_comments = pd.DataFrame([], columns=columns, dtype=float)
 
-        all_posts = subreddit.hot(limit=10)
-
+        all_posts = subreddit.hot(limit=5000)
+        counter = 0
         for post in all_posts:
+                # TODO: look into how praw manages connection timeout
             post.comments.replace_more(limit=None)
             for comment in post.comments.list():
                 #print(datetime.fromtimestamp(comment.created_utc))
@@ -147,13 +149,14 @@ class Reddit_Scanner(Preprocessor):
                     comment.score, comment.parent_id,
                     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]] # 0.0 placeholders until NLP results returned
                 raw_comments = raw_comments.append(pd.DataFrame(new_line, columns=columns),ignore_index=True)
-
+            counter += 1
+            print('post {}'.format(counter))
         return raw_comments
 
     def scrub_reddit_comments(self, raw_comments, start_timestamp, end_timestamp):
-    """
-    Scrubs a reddit dataframe defined by get_raw_comments to only the time period, and also cleans up naming, time periods, etc
-    """
+        """
+        Scrubs a reddit dataframe defined by get_raw_comments to only the time period, and also cleans up naming, time periods, etc
+        """
 
         # Scrub data to remove low value comments
         #print("raw shape is ", raw_comments.shape)
