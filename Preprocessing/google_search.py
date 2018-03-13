@@ -2,8 +2,8 @@ from pytrends.request import TrendReq
 import pandas as pd
 from datetime import datetime, timedelta
 
-from traderbot.Preprocessing.helpers import date_to_datestring
-from traderbot.Preprocessing.base_class import Preprocessor
+from Preprocessing.helpers import date_to_datestring
+from Preprocessing.base_class import Preprocessor
 
 class Searchtrends(Preprocessor):
 
@@ -59,43 +59,43 @@ class Searchtrends(Preprocessor):
         # Global data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='', gprop='')
         WW_data = self.pytrends.interest_over_time()
-        WW_data.columns= ['datetime', 'Worldwide']
+        WW_data.columns= ['Worldwide', 'isPartial']
         data = WW_data['Worldwide'].to_frame()
 
         # US Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='US', gprop='')
         US_data = self.pytrends.interest_over_time()
-        US_data.columns= ['datetime', 'US']
+        US_data.columns= ['US', 'isPartial']
         data = data.join(US_data['US'])
 
         # UK Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='GB', gprop='')
         GB_data = self.pytrends.interest_over_time()
-        GB_data.columns= ['datetime', 'GB']
+        GB_data.columns= ['GB', 'isPartial']
         data = data.join(GB_data['GB'])
 
         # UK Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='FR', gprop='')
         FR_data = self.pytrends.interest_over_time()
-        FR_data.columns= ['datetime', 'FR']
+        FR_data.columns= ['FR', 'isPartial']
         data = data.join(FR_data['FR'])
 
         # Germany Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='DE', gprop='')
         DE_data = self.pytrends.interest_over_time()
-        DE_data.columns= ['datetime', 'DE']
+        DE_data.columns= ['DE', 'isPartial']
         data = data.join(DE_data['DE'])
 
         # Russia Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='RU', gprop='')
         RU_data = self.pytrends.interest_over_time()
-        RU_data.columns= ['datetime', 'RU']
+        RU_data.columns= ['RU', 'isPartial']
         data = data.join(RU_data['RU'])
 
         # Korea Data
         self.pytrends.build_payload(topic, cat=0, timeframe=timeframe, geo='KR', gprop='')
         KR_data = self.pytrends.interest_over_time()
-        KR_data.columns= ['datetime', 'KR']
+        KR_data.columns= ['KR', 'isPartial']
         data = data.join(KR_data['KR'])
 
         return data

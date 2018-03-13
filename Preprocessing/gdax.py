@@ -7,8 +7,8 @@ import pandas as pd
 import time
 import requests
 from datetime import datetime, timedelta
-from traderbot.Preprocessing.base_class import Preprocessor
-from traderbot.Preprocessing.helpers import date_to_iso8601
+from Preprocessing.base_class import Preprocessor
+from Preprocessing.helpers import date_to_iso8601
 
 class GDAX(Preprocessor):
     def __init__(self, interval, start_time, end_time):

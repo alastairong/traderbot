@@ -28,8 +28,8 @@ from google.cloud.language import enums
 from google.cloud.language import types
 from google.oauth2 import service_account
 
-from traderbot.Preprocessing.base_class import Preprocessor
-from traderbot.Preprocessing.helpers import date_to_iso8601, date_to_interval
+from Preprocessing.base_class import Preprocessor
+from Preprocessing.helpers import date_to_iso8601, date_to_interval
 
 # Define
 class Reddit_Scanner(Preprocessor):
@@ -139,7 +139,6 @@ class Reddit_Scanner(Preprocessor):
         all_posts = subreddit.hot(limit=5000)
         counter = 0
         for post in all_posts:
-                # TODO: look into how praw manages connection timeout
             post.comments.replace_more(limit=None)
             for comment in post.comments.list():
                 #print(datetime.fromtimestamp(comment.created_utc))

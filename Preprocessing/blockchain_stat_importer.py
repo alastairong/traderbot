@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 
-from traderbot.Preprocessing.helpers import date_to_datestring, date_to_iso8601, date_to_interval
-from traderbot.Preprocessing.base_class import Preprocessor
+from Preprocessing.helpers import date_to_datestring, date_to_iso8601, date_to_interval
+from Preprocessing.base_class import Preprocessor
 
 class Blockchain_Stats(Preprocessor):
 
