@@ -15,14 +15,14 @@ class processor:
     """
     Downloads training and live data for deep learning and prediction. Also includes data processor helper functions
     """
-    def historical_download(start_time, end_time, interval, include_sentiment_analysis=False, normalize=False, load_pickle=True):
+    def historical_download(start_time, end_time, interval, include_sentiment_analysis=False, load_pickle=True):
         """
         Downloads and aggregates historical data for training
         :config: config file if needed
         :start_time: beginning of download period in Datetime format
         :end_time: end of download period in Datetime format
         :interval: time interval at which the training data will be collected and batched, in minutes
-        Returns a dataframe and mean/std value series. Mean/std for use when converting normalized to final values
+        Returns a dataframe
         """
         # TODO: Make loading of different datasets programmatic and customisable based on a list of some kind
         if load_pickle:
@@ -151,7 +151,6 @@ class processor:
         ETH_blockchain = ETH_blockchain.rename(columns={"Hashrate": "Eth_hashrate", "Addresses": "Eth_addresses", "Supply": "Eth_supply", "Trx_Fee": "Eth_trx_fee", "Daily_Trx": "Eth_daily_trx"})
         BTC_blockchain = BTC_blockchain.rename(columns={"Hashrate": "Btc_hashrate", "Addresses": "Btc_addresses", "Supply": "Btc_supply", "Trx_Fee": "Btc_trx_fee", "Daily_Trx": "Btc_daily_trx"})
         LTC_blockchain = LTC_blockchain.rename(columns={"Hashrate": "Ltc_hashrate", "Addresses": "Ltc_addresses", "Supply": "Ltc_supply", "Trx_Fee": "Ltc_trx_fee", "Daily_Trx": "Ltc_daily_trx"})
-
         # Join dataframes together
         input_data = None
         input_data = G_ETH_USD
@@ -166,6 +165,7 @@ class processor:
         input_data = input_data.join(G_BTC_EUR)
         input_data = input_data.join(K_BTC_USD)
         input_data = input_data.join(K_BTC_EUR)
+
         #input_data = input_data.join(BTC_reddit)
         input_data = input_data.join(BTC_trends)
         input_data = input_data.join(BTC_blockchain)
@@ -180,7 +180,6 @@ class processor:
 
         # Do interpolation for any blank cells
         input_data = input_data.interpolate()
-
         # Remove any data from outside correct time period
         #print("slicing by dates")
         input_data = input_data[input_data.index > start_time]
@@ -199,33 +198,31 @@ class processor:
         input_data.drop('Btc_trx_fee', axis=1, inplace=True)
         input_data.drop('Ltc_trx_fee', axis=1, inplace=True)
 
-        # Convert everything except trx_fee / trx, reddit sentiment to % change
-        dataframe = input_data.pct_change()
-        dataframe[['Eth_fee_per_trx', 'Btc_fee_per_trx', 'Ltc_fee_per_trx']] = input_data[['Eth_fee_per_trx', 'Btc_fee_per_trx', 'Ltc_fee_per_trx']]
         # TODO: Add reddit sentiment to this list that isn't converted to pct
 
-        mean_df = dataframe.mean()
-        std_df = dataframe.std()
-        # Normalise if required
-        if normalize:
-            dataframe = (dataframe - mean_df)/std_df
-
-        return dataframe, mean_df, std_df
+        return input_data
 
     def live_download(config, window = 1):
         # Similar to historical_download but downloads for the most recent {window} intervals
         # Returns dataframe in format XXX
         pass
 
-    def generate_x_y(data, target = "Kraken_BTC_EUR_Close"):
+    def generate_x_y(data, target="Kraken_BTC_USD_Close", forecast_range=1 ):
         """
         Converts training data into training data and labels, with label currently fixed at 1 interval in the future.
-        Returns a numpy array tuple of (train, label)
+        Returns a numpy array tuple of (train_data, training_target, target_actuals) where target actuals was the $ or EUR value
         """
-        forecast_range=1 #Fix the forecast range to 1 interval period ahead
-        # Takes a downloaded dataset and splits it into data and targets
-        input_data = np.array(data[:-forecast_range])
+        # Save target actuals for later comparison
+        target_actuals = data[target]
+        target_actuals = np.array(target_actuals)
+
+        # Convert everything except trx_fee / trx, reddit sentiment to % change
+        data = data.pct_change()
+        data[['Eth_fee_per_trx', 'Btc_fee_per_trx', 'Ltc_fee_per_trx']] = data[['Eth_fee_per_trx', 'Btc_fee_per_trx', 'Ltc_fee_per_trx']]
+
+        # Splits dataset into data and targets
+        train_data = np.array(data[:-forecast_range])
         target_df = data[target].shift(-forecast_range)
         target_data = np.array(target_df)
 
-        return input_data, target_data[:-1]
+        return train_data[1:], target_data[1:-forecast_range], target_actuals[1:] # Remove first line since for % growth it will be NaN. Remove last line for target since it's also NaN because of shifting

@@ -16,9 +16,9 @@ class Neural_Net:
 
     def __init__(self, input_size, architecture, activation='relu', learning_rate=0.001):
         # Sets up the network in Keras, including optimisers
-        if architecture = 'DNN':
+        if architecture == 'DNN':
             self.model = LSTM(input_size, learning_rate, activation)
-        if architecture = 'LSTM':
+        if architecture == 'LSTM':
             self.model = LSTM(input_size, learning_rate)
         else:
             print("model architecture not recognised or defined")
@@ -39,7 +39,7 @@ class Neural_Net:
         # Define logging callback
         class train_log(keras.callbacks.Callback):
             def on_train_begin(self, logs={}):
-                self.losses = {'train'=[], 'validation'=[]}
+                self.losses = {'train':[], 'validation':[]}
 
             def on_epoch_end(self, logs={}):
                 self.losses['train'].append(logs.get('loss'))
@@ -78,7 +78,7 @@ class Neural_Net:
 
 class LSTM:
     """
-    RNN using LSTM. With only ~60 datapoints per time period, fully connected layers works well
+    RNN using LSTM
     """
     def __init__(self, input_size, learning_rate):
         self.input_size = input_size
@@ -86,7 +86,7 @@ class LSTM:
         self.build_model()
 
     def build_model(self):
-        self.model = Keras.Sequential()
+        self.model = Sequential()
         self.model.add(LSTM(
             input_dim = self.input_size,
             output_dim=64,
@@ -108,13 +108,13 @@ class Convnet:
     """
     TBD - Model using CNN to capture time series patterns
     """
-    def __init__(self, input_size, activation='relu'):
+    def __init__(self, input_size, learning_rate, activation='relu'):
         self.input_size = input_size
         self.learning_rate = learning_rate
         self.build_model()
 
     def build_model(self):
-        self.model = Keras.Sequential()
+        self.model = Sequential()
         # Define optimiser and compile
         optimizer = optimizers.Adam(self.learning_rate)
         self.model.compile(optimizer=optimizer, loss='mse', metrics=['accuracy'])
@@ -123,14 +123,14 @@ class DNN:
     """
     Standard fully connected MLP as baseline
     """
-    def __init__(self, input_size, activation='relu'):
+    def __init__(self, input_size, learning_rate, activation='relu'):
         self.input_size = input_size
         self.learning_rate = learning_rate
         self.activation = activation
         self.build_model()
 
     def build_model(self):
-        self.model = Keras.Sequential()
+        self.model = Sequential()
         self.model.add(Dense(32, activation = self.activation, input_dim = self.input_size))
         self.model.add(Dropout(0.2))
         self.model.add(Dense(64, activation = self.activation))
