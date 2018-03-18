@@ -42,7 +42,7 @@ class processor:
         #G_LTC_USD = G.get_training_data('LTC-USD')
 
         # Get GDAX EUR market data
-        G_ETH_EUR = G.get_training_data('ETH-EUR')
+        #G_ETH_EUR = G.get_training_data('ETH-EUR')
         G_BTC_EUR = G.get_training_data('BTC-EUR')
         #G_LTC_EUR = G.get_training_data('LTC-EUR')
 
@@ -77,7 +77,7 @@ class processor:
         G_ETH_USD = G_ETH_USD.rename(index=lambda x:x*1000000000).rename(index=pd.to_datetime)
         G_BTC_USD = G_BTC_USD.rename(index=lambda x:x*1000000000).rename(index=pd.to_datetime)
         #G_LTC_USD = G_LTC_USD.rename(index=lambda x:x*1000000000).rename(index=pd.to_datetime)
-        G_ETH_EUR = G_ETH_EUR.rename(index=lambda x:x*1000000000).rename(index=pd.to_datetime)
+        #G_ETH_EUR = G_ETH_EUR.rename(index=lambda x:x*1000000000).rename(index=pd.to_datetime)
         G_BTC_EUR = G_BTC_EUR.rename(index=lambda x:x*1000000000).rename(index=pd.to_datetime)
         #G_LTC_EUR = G_LTC_EUR.rename(index=lambda x:x*1000000000).rename(index=pd.to_datetime)
 
@@ -93,7 +93,7 @@ class processor:
         K_ETH_USD = K_ETH_USD.rename(columns={"low": "Ethusd_kraken_low", "high": "Ethusd_kraken_high", "open": "Ethusd_kraken_open", "close": "Ethusd_kraken_close", "volume": "Ethusd_kraken_vol"})
         K_BTC_USD = K_BTC_USD.rename(columns={"low": "Btcusd_kraken_low", "high": "Btcusd_kraken_high", "open": "Btcusd_kraken_open", "close": "Btcusd_kraken_close", "volume": "Btcusd_kraken_vol"})
         #K_LTC_USD = K_LTC_USD.rename(columns={"low": "Ltcusd_kraken_low", "high": "Ltcusd_kraken_high", "open": "Ltcusd_kraken_open", "close": "Ltcusd_kraken_close", "volume": "Ltcusd_kraken_vol"})
-        G_ETH_EUR = G_ETH_EUR.rename(columns={"low": "Etheur_gdax_low", "high": "Etheur_gdax_high", "open": "Etheur_gdax_open", "close": "Etheur_gdax_close", "volume": "Etheur_gdax_vol"})
+        #G_ETH_EUR = G_ETH_EUR.rename(columns={"low": "Etheur_gdax_low", "high": "Etheur_gdax_high", "open": "Etheur_gdax_open", "close": "Etheur_gdax_close", "volume": "Etheur_gdax_vol"})
         G_BTC_EUR = G_BTC_EUR.rename(columns={"low": "Btceur_gdax_low", "high": "Btceur_gdax_high", "open": "Btceur_gdax_open", "close": "Btceur_gdax_close", "volume": "Btceur_gdax_vol"})
         #G_LTC_EUR = G_LTC_EUR.rename(columns={"low": "Ltceur_gdax_low", "high": "Ltceur_gdax_high", "open": "Ltceur_gdax_open", "close": "Ltceur_gdax_close", "volume": "Ltceur_gdax_vol"})
         K_ETH_EUR = K_ETH_EUR.rename(columns={"low": "Etheur_kraken_low", "high": "Etheur_kraken_high", "open": "Etheur_kraken_open", "close": "Etheur_kraken_close", "volume": "Etheur_kraken_vol"})
@@ -108,7 +108,7 @@ class processor:
         # Join dataframes together
         input_data = None
         input_data = G_ETH_USD
-        input_data = input_data.join(G_ETH_EUR)
+        #input_data = input_data.join(G_ETH_EUR)
         input_data = input_data.join(K_ETH_USD)
         input_data = input_data.join(K_ETH_EUR)
         #input_data = input_data.join(ETH_reddit)
