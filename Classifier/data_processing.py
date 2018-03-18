@@ -165,7 +165,7 @@ class processor:
 
         # Download data for the most recent period
         end_time = datetime.now().replace(microsecond=0,second=0,minute=0)
-        start_time = end_time - timedelta(minutes=interval * (sequence_length + 1)) # Adding some historical data in case interpolation needed
+        start_time = end_time - timedelta(minutes=interval * (sequence_length + 2)) # Adding some historical data in case interpolation needed
         data = processor.historical_download(start_time, end_time, interval)
 
         # Convert to float and interpolate any missing values
@@ -180,19 +180,13 @@ class processor:
 
         # Normalise data
         x = (x - x_mean) / x_std
-        print("x")
-        print(x[0])
 
         # Reshape data from (num_samples, features) to (num_samples, sequence_length, features)
         seq_x = []
         for ii in range(len(x) - sequence_length + 1):
-            print(ii)
             seq_x.append(x[ii : ii + sequence_length])
-            print(x[ii : ii + sequence_length])
 
         seq_x = np.array(seq_x)
-        print("seq x")
-        print(seq_x)
 
         input_data = np.reshape(seq_x[-1], (-1, sequence_length, seq_x.shape[2]))
         return input_data, current_price[-1]
