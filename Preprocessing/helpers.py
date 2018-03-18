@@ -15,10 +15,11 @@ def date_to_datestring(date):
     month=date.month,
     day=date.day)
 
-def date_to_interval(dt, interval): # Hacky solution only working for rounding to nearest day
-    interval = datetime(dt.year, dt.month, dt.day, 0, 0)
-    return interval
-# TODO: Fix this function so it works for intervals > 60 min - maybe just take 5, 10, 15, 30, 60 min, 24hr intervals?
+def date_to_interval(dt, interval):
+    rounding = interval // 60
+    hourly = dt.hour // rounding * rounding
+    time_period = datetime(dt.year, dt.month, dt.day, hourly, 0)
+    return time_period
 
 # WIP code to make the date_to_interval function work for all types of intervals
 def date_to_interval_2(dt, interval): # Round a datetime DOWN to the nearest interval

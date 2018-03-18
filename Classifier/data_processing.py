@@ -5,7 +5,7 @@ Functions to download, consolidate, and process data from the various sources
 import numpy as np
 import pandas as pd
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 sys.path.append('../..')
 import pickle
 
@@ -153,10 +153,49 @@ class processor:
 
         return input_data
 
-    def live_download(config, window = 1):
-        # Similar to historical_download but downloads for the most recent {window} intervals
-        # Returns dataframe in format XXX
-        pass
+    def live_download(interval, sequence_length, x_mean, x_std):
+        """
+        Function to download most recent data, scrub and normalise it, and convert to sequential values for LSTM
+        :interval: Time period in minutes between datapoints. Needs to be same as for original training data
+        :sequence_length: Number of intervals of "memory" for LSTM network. Data will be fed in time windows of length=sequence_length
+        :x_mean: training/validation data mean values for normalisation
+        :x_std: training/validation data standard deviation values for normalisation
+        Returns tuple of np.array data for last time window. Shape of (1, sequence_length, input_size), and current price for logging purposes
+        """
+
+        # Download data for the most recent period
+        end_time = datetime.now().replace(microsecond=0,second=0,minute=0)
+        start_time = end_time - timedelta(minutes=interval * (sequence_length + 1)) # Adding some historical data in case interpolation needed
+        data = processor.historical_download(start_time, end_time, interval)
+
+        # Convert to float and interpolate any missing values
+        data = data.astype('float64')
+        data = data.interpolate()
+        target = "Btcusd_kraken_close" # Only used for training. Must be the same as for training
+        current_price = data[target] # For logging purposes
+
+        # Convert to growth rates and np.arrays
+        data = data.pct_change()
+        x = np.array(data[1:]) # First value removed. Will always be NaN because growth rates
+
+        # Normalise data
+        x = (x - x_mean) / x_std
+        print("x")
+        print(x[0])
+
+        # Reshape data from (num_samples, features) to (num_samples, sequence_length, features)
+        seq_x = []
+        for ii in range(len(x) - sequence_length + 1):
+            print(ii)
+            seq_x.append(x[ii : ii + sequence_length])
+            print(x[ii : ii + sequence_length])
+
+        seq_x = np.array(seq_x)
+        print("seq x")
+        print(seq_x)
+
+        input_data = np.reshape(seq_x[-1], (-1, sequence_length, seq_x.shape[2]))
+        return input_data, current_price[-1]
 
     def generate_x_y(data, target="Kraken_BTC_USD_Close", forecast_range=1 ):
         """

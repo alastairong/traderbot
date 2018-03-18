@@ -1,30 +1,91 @@
+#!/Users/alastairong/anaconda3/bin/python
+
 """
 Run live prediction model
 """
 
-import config
+# Import packages
+import numpy as np
+import pandas as pd
+import sys
+from datetime import datetime, timedelta
+import time
+sys.path.append('../..')
+import pickle
+import krakenex
+from pykrakenapi import KrakenAPI
+
 import h5py
-from data_processing import processor
-from prediction_model import Neural_Net
+from keras import optimizers
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, LSTM, MaxPooling2D, Conv2D
+from keras.callbacks import ModelCheckpoint, Callback
+import matplotlib.pyplot as plt
+import missingno as msno
+import config
 
-# Download datasets
-window = 5 # Prime the model with the last 5 intervals
-predict = 6 # Predict the next 6 time periods (30 min)
-seed_data = processor.live_download(config, window)
+from Classifier.data_processing import processor
+from Classifier.prediction_model import LSTM_net
 
-# Initialize Neural Net
-weights_file = #
-learning_rate = #
-batch_size = #
-network = Neural_Net()
-network.model.load_weights(weights_file)
+# Define global variables
+interval = 1440 # 1440 minutes = 1 day
+sequence_length = 4
+input_size = 35
+learning_rate = 0.00001 # Only needed to define optimiser. Not used in prediction
+input_size = (sequence_length, input_size)
 
-# Start predicting
-prediction = network.predict(seed_data)
-Wait 1 interval
-while True: # Need to think through how to deal with the loop, data seeding, and LSTM data feed
-    data_feed = processor.live_download(config, 1)
-    prediction = network.predict(data_feed)
-    Wait 1 interval
+# Initialise model
+LSTM_network = LSTM_net(input_size, learning_rate)
 
-# Save prediction data for analysis and future training
+# Load the model weights with the best validation loss.
+LSTM_network.model.load_weights('/Users/alastairong/Documents/GitHub/traderbot/saved_models/LSTM_weights.hdf5')
+
+live_trading = False
+
+# Load normalisation data
+with open('/Users/alastairong/Documents/GitHub/traderbot/pickles/normalisation.pickle', 'rb') as f:
+    x_mean, x_std, y_mean, y_std = pickle.load(f)
+
+# Load latest trade positions from log
+try:
+    log = pd.read_csv('trade_log.csv')
+    cash = log[-1]['Cash_Position']
+    position = log[-1]['BTC_Position']
+    print("loaded")
+except:
+    cash = 1000
+    position = 0
+    print(cash)
+    print(position)
+
+# Run prediction script
+Date = datetime.now()
+input_data, current_price = processor.live_download(interval, sequence_length, x_mean, x_std)
+raw_prediction = LSTM_network.model.predict(input_data)
+expected_growth = raw_prediction.item() * y_std + y_mean
+predicted_price = current_price * (1 + expected_growth)
+
+# Simple trading algorithm.
+if expected_growth > 0:
+    action = "buy"
+    position += cash / current_price * 0.997 # 0.997 to account for fees
+    volume = position
+    cash = 0
+if expected_growth < 0:
+    action = "sell"
+    cash += position * current_price * 0.997
+    volume = position
+    position = 0
+
+if live_trading:
+    # call Kraken API to make trades here
+    api = krakenex.API(config.key, config.secret)
+    k = KrakenAPI(api)
+    k.add_standard_order('XXBTZUSD', action, 'market', volume)
+
+# Reporting and logging
+log_data = np.array([Date, action, current_price, predicted_price, cash, position, (cash + position * current_price)]).reshape(-1,7)
+log = pd.DataFrame(log_data, columns=["Date", "Action", "Current Price", "Predicted_Price", "Cash_Position", "BTC_Position", "Portfolio_Value"])
+log.to_csv('trade_log.csv', encoding='utf-8', index=True)
+
+print("{}: {}. Price expected to change from {} to {}. Portfolio value of {}".format(Date, action, current_price, predicted_price, (current_price * position + cash)))

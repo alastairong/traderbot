@@ -1,2 +1,0 @@
-Add MACD and other trading variables
-Turn OHLC into open price and some sort of price spread to represent volatility

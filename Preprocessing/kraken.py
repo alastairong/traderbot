@@ -14,6 +14,7 @@ import pytz
 from pykrakenapi import KrakenAPI
 from Preprocessing.base_class import Preprocessor
 from Preprocessing.helpers import date_to_iso8601, date_to_interval
+import config
 
 class Kraken(Preprocessor):
     def __init__(self, interval, start_time, end_time):
@@ -27,7 +28,7 @@ class Kraken(Preprocessor):
         self.start_time = start_time
         self.end_time = end_time
         # Initialise krakenex library
-        api = krakenex.API()
+        api = krakenex.API(config.key, config.secret)
         self.k = KrakenAPI(api)
 
 
