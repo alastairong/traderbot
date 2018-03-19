@@ -28,7 +28,7 @@ class Kraken(Preprocessor):
         self.start_time = start_time
         self.end_time = end_time
         # Initialise krakenex library
-        api = krakenex.API(config.key, config.secret)
+        api = krakenex.API()
         self.k = KrakenAPI(api)
 
 
@@ -48,6 +48,7 @@ class Kraken(Preprocessor):
             trades = trades.append(new_data)
             time.sleep(1)
             print("time period from {} to {}".format(slice_start, last))
+        trades = trades[trades.index < end]
         dataframe = self.to_ohlc(trades)
         return dataframe
 
