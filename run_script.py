@@ -86,6 +86,6 @@ if live_trading:
 # Reporting and logging
 log_data = np.array([Date, action, current_price, predicted_price, cash, position, (cash + position * current_price)]).reshape(-1,7)
 log = pd.DataFrame(log_data, columns=["Date", "Action", "Current Price", "Predicted_Price", "Cash_Position", "BTC_Position", "Portfolio_Value"])
-log.to_csv('/Users/alastairong/Documents/GitHub/traderbot/trade_log.csv', encoding='utf-8', index=True)
+log.to_csv('/Users/alastairong/Documents/GitHub/traderbot/test_log.csv', encoding='utf-8', index=True)
 
 print("{}: {}. Price expected to change from {} to {}. Portfolio value of {}".format(Date, action, current_price, predicted_price, (current_price * position + cash)))

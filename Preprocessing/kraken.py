@@ -43,7 +43,7 @@ class Kraken(Preprocessor):
         end_timestamp = self.end_time.replace(tzinfo=pytz.utc).timestamp() # last is returned a an epoch timestamp so end_time needs to be reformatted
         trades, last = self.request_trade_slice(currency_pair, slice_start)
         while last < end_timestamp:
-            slice_start = datetime.fromtimestamp(last)
+            slice_start = datetime.utcfromtimestamp(last)
             new_data, last = self.request_trade_slice(currency_pair, slice_start)
             trades = trades.append(new_data)
             time.sleep(1)
